@@ -43,9 +43,9 @@ function runAI(ship, api) {
     if (Math.abs(angleDiff) > facingTolerance) {
       // Need to turn
       if (angleDiff > 0) {
-        api.turnLeft(ship); // Enemy is counter-clockwise
-      } else {
         api.turnRight(ship); // Enemy is clockwise
+      } else {
+        api.turnLeft(ship); // Enemy is counter-clockwise
       }
     } else {
       // --- Facing enemy: Decide whether to shoot or thrust ---
@@ -64,8 +64,8 @@ function runAI(ship, api) {
   } else {
     // No enemy detected - simple patrol behavior
     api.turnRight(ship); 
-    // Maybe add occasional thrust later?
-    // if (Math.random() < 0.05) { api.thrust(ship); } 
+    // Add occasional thrust
+    if (Math.random() < 0.05) { api.thrust(ship); } 
   }
 }
 </textarea>

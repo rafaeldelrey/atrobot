@@ -14,6 +14,7 @@ canvas.height = 600;
 let ships = [];
 let bullets = [];
 let gameRunning = true;
+let explosions = [];
 const keysPressed = {
     ArrowUp: false,
     ArrowLeft: false,
@@ -22,6 +23,8 @@ const keysPressed = {
     " ": false    // For shooting (" ") - handle both common key values
 };
 let ship2AI = null; // Variable to hold the AI function
+const PLAYER_SHIP_INDEX = 0;
+const AI_SHIP_INDEX = 1;
 
 // --- JavaScript AI API ---
 const aiApi = {
@@ -43,9 +46,21 @@ const aiApi = {
         }
     },
     scanEnemy: function(ship) {
-        const playerShip = ships[0]; // Assuming player is always ships[0]
+        const playerShip = ships[PLAYER_SHIP_INDEX]; // Using constant for player ship
         if (!ship || !playerShip) return null;
-
+        
+        // Draw scanning visual effect if the ship is the AI ship
+        if (ship === ships[AI_SHIP_INDEX]) {
+            ctx.save();
+            ctx.beginPath();
+            const scanRadius = 50;
+            ctx.arc(ship.x, ship.y, scanRadius, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+        }
+        
         const dx = playerShip.x - ship.x;
         const dy = playerShip.y - ship.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
@@ -54,9 +69,8 @@ const aiApi = {
         let angleDiff = angleToPlayer - ship.angle;
         while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
         while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
-
-        // Always return distance and relative angle if player exists
-        return { distance: distance, angle: angleDiff }; 
+        
+        return { distance: distance, angle: angleDiff };
         // Removed scanCone check - AI logic will decide how to use the angle
     },
     getAngle: function(ship) {
@@ -180,6 +194,27 @@ class Ship {
     }
 }
 
+function addExplosion(x, y) {
+    explosions.push({ x: x, y: y, time: 0, duration: 30, initialRadius: 10, maxRadius: 40 });
+}
+
+function updateAndDrawExplosions() {
+    for (let i = explosions.length - 1; i >= 0; i--) {
+        const exp = explosions[i];
+        exp.time++;
+        const progress = exp.time / exp.duration;
+        const currentRadius = exp.initialRadius + (exp.maxRadius - exp.initialRadius) * progress;
+        const alpha = 1 - progress;
+        ctx.beginPath();
+        ctx.arc(exp.x, exp.y, currentRadius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 165, 0, ${alpha})`;
+        ctx.fill();
+        if(exp.time >= exp.duration) {
+            explosions.splice(i, 1);
+        }
+    }
+}
+ 
 // --- Game Loop ---
 function gameLoop() {
     if (!gameRunning) return;
@@ -241,7 +276,8 @@ function gameLoop() {
             // Let's skip self-collision check for now and assume bullets hit any ship.
 
             if (distance < bullet.radius + ship.radius) {
-                // Collision detected!
+                // Collision detected! Add explosion effect.
+                addExplosion(ship.x, ship.y);
                 bullets.splice(i, 1); // Remove bullet
                 ship.health -= 10; // Decrease ship health (adjust damage as needed)
 
@@ -274,11 +310,96 @@ function gameLoop() {
         }
     }
 
+    drawHealthBars();
+    updateAndDrawExplosions();
     // 5. Request next frame
     requestAnimationFrame(gameLoop);
 }
 
-// --- AI Code Loading (JavaScript) ---
+function drawHealthBars() {
+    const playerShip = ships[0]; // Player's ship is at index 0
+    const aiShip = ships[1];     // AI ship is at index 1
+    
+    // Draw Player health bar on left
+    if (playerShip) {
+        const barWidth = 200;
+        const barHeight = 20;
+        const x = 20;
+        const y = canvas.height - 40;
+        ctx.fillStyle = 'gray';
+        ctx.fillRect(x, y, barWidth, barHeight);
+        const healthPercentage = Math.max(0, playerShip.health) / 100;
+        ctx.fillStyle = 'lime';
+        ctx.fillRect(x, y, barWidth * healthPercentage, barHeight);
+        ctx.fillStyle = 'white';
+        ctx.font = "16px Arial";
+        ctx.fillText("Player Health", x, y - 5);
+    }
+    
+    // Draw AI health bar on right
+    if (aiShip) {
+        const barWidth = 200;
+        const barHeight = 20;
+        const x = canvas.width - barWidth - 20;
+        const y = canvas.height - 40;
+        ctx.fillStyle = 'gray';
+        ctx.fillRect(x, y, barWidth, barHeight);
+        const healthPercentage = Math.max(0, aiShip.health) / 100;
+        ctx.fillStyle = 'red';
+        ctx.fillRect(x, y, barWidth * healthPercentage, barHeight);
+        ctx.fillStyle = 'white';
+        ctx.font = "16px Arial";
+        ctx.fillText("AI Health", x, y - 5);
+    }
+}
+    
+/*
+// Example JavaScript AI Code
+// The function 'runAI' will be called each frame.
+// It receives the 'ship' object and an 'api' object.
+//
+// API functions:
+// api.turnLeft(ship)
+// api.turnRight(ship)
+// api.thrust(ship)
+// api.shoot(ship)
+// api.scanEnemy(ship) -> returns { distance, angle } or null
+// api.getAngle(ship) -> returns angle in radians
+// api.getX(ship) -> returns x coordinate
+// api.getY(ship) -> returns y coordinate
+//
+// Corrected AI Logic: (if angleDiff > 0 then turn right; if angleDiff < 0 then turn left)
+// function runAI(ship, api) {
+//   const enemyInfo = api.scanEnemy(ship);
+//   const facingTolerance = 0.1; // Radians (approx 5.7 degrees)
+//   const shootingDistance = 250; // Distance within which to start shooting
+//   const tooCloseDistance = 80; // Distance below which to stop thrusting
+//
+//   if (enemyInfo) {
+//     const angleDiff = enemyInfo.angle;
+//     const distance = enemyInfo.distance;
+//
+//     // --- Aiming ---
+//     if (Math.abs(angleDiff) > facingTolerance) {
+//       if (angleDiff > 0) {
+//         api.turnRight(ship); // Correct: Enemy is counter-clockwise, so turn right.
+//       } else {
+//         api.turnLeft(ship); // Correct: Enemy is clockwise, so turn left.
+//       }
+//     } else {
+//       if (distance < shootingDistance) {
+//         api.shoot(ship);
+//       }
+//       if (distance > tooCloseDistance) {
+//         api.thrust(ship);
+//       }
+//     }
+//   } else {
+//     api.turnRight(ship); 
+//   }
+// }
+*/
+ // --- AI Code Loading (JavaScript) ---
 function loadAICode() {
     const code = codeTextArea.value;
     outputArea.textContent = "Loading AI...\n"; // Clear previous output
