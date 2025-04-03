@@ -1,5 +1,7 @@
 # Atrobot Game
 
+**Version: 0.0.3**
+
 Atrobot Game is a simple space shooter where players control a ship to battle enemy fighters. The game incorporates dynamic enemy scanning and AI-based interactions.
 
 ## Features
