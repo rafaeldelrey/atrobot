@@ -46,32 +46,39 @@ const aiApi = {
         }
     },
     scanEnemy: function(ship) {
-        const playerShip = ships[PLAYER_SHIP_INDEX]; // Using constant for player ship
+        const playerShip = ships[PLAYER_SHIP_INDEX];
         if (!ship || !playerShip) return null;
-        
-        // Draw scanning visual effect if the ship is the AI ship
-        if (ship === ships[AI_SHIP_INDEX]) {
-            ctx.save();
-            ctx.beginPath();
-            const scanRadius = 50;
-            ctx.arc(ship.x, ship.y, scanRadius, 0, Math.PI * 2);
-            ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
-            ctx.lineWidth = 3;
-            ctx.stroke();
-            ctx.restore();
-        }
         
         const dx = playerShip.x - ship.x;
         const dy = playerShip.y - ship.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
         const angleToPlayer = Math.atan2(dy, dx);
         let angleDiff = angleToPlayer - ship.angle;
         while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
         while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
         
-        return { distance: distance, angle: angleDiff };
-        // Removed scanCone check - AI logic will decide how to use the angle
+        const scanConeAngle = Math.PI / 4;
+        const enemyDetected = Math.abs(angleDiff) <= scanConeAngle;
+        
+        if (ship === ships[AI_SHIP_INDEX]) {
+            ctx.save();
+            ctx.beginPath();
+            const scanRadius = 50;
+            const startAngle = ship.angle - Math.PI / 4;
+            const endAngle = ship.angle + Math.PI / 4;
+            ctx.arc(ship.x, ship.y, scanRadius, startAngle, endAngle);
+            if (enemyDetected) {
+                const isBlinkOn = Math.floor(Date.now() / 300) % 2 === 0;
+                ctx.strokeStyle = isBlinkOn ? 'rgba(255,0,0,0.8)' : 'rgba(255,0,0,0.1)';
+            } else {
+                ctx.strokeStyle = 'rgba(0, 255, 255, 0.3)';
+            }
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+        }
+        
+        return enemyDetected ? { distance: distance, angle: angleDiff } : null;
     },
     getAngle: function(ship) {
         return ship ? ship.angle : 0;
