@@ -1,8 +1,8 @@
-# Atrobot Game
+# AI Bot Arena
 
 **Version: 0.0.3**
 
-Atrobot Game is a simple space shooter where players control a ship to battle enemy fighters. The game incorporates dynamic enemy scanning and AI-based interactions.
+AI Bot Arena is a simple space shooter where players control a ship to battle enemy fighters. The game incorporates dynamic enemy scanning and AI-based interactions.
 
 ## Features
 
@@ -25,4 +25,4 @@ This project is hosted on GitHub Pages. For more information, refer to the [GitH
 
 - **0.0.3:** Implemented dynamic arc scanning – the scanning arc now blinks red when an enemy is detected.
 
-Enjoy playing Atrobot Game!
+Enjoy playing AI Bot Arena!
